@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TalkWise - Engaging AI-Powered Conversations</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="chat-container">
+        <!-- Main Title -->
+        <h1 class="main-title">TalkWise - Engaging AI-Powered Conversations</h1>
+        
+        <!-- Chat Box -->
+        <div id="chat-box" class="chat-box"></div>
+        
+        <!-- Input Container -->
+        <div class="input-container">
+            <input type="text" id="user-input" placeholder="Type your message here..." autofocus>
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        function sendMessage() {
+            const userInput = document.getElementById("user-input").value.trim();
+            if (userInput === "") return;
+
+            const chatBox = document.getElementById("chat-box");
+
+            // Display user message
+            chatBox.innerHTML += `
+                <div class="message user-message">
+                    <div class="text">${userInput}</div>
+                </div>`;
+            document.getElementById("user-input").value = ""; // Clear input field
+            chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
+
+            // Send the message to the server
+            fetch("/chat", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ message: userInput })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    let messageContent;
+                    
+                    // Check if the response contains code block markers (e.g., ``` for multiline code)
+                    if (data.message.includes("```")) {
+                        const code = data.message.split("```")[1].trim();
+                        messageContent = `
+                            <div class="message assistant-message">
+                                <div class="text"><pre><code>${code}</code></pre></div>
+                            </div>`;
+                    } else {
+                        messageContent = `
+                            <div class="message assistant-message">
+                                <div class="text">${data.message}</div>
+                            </div>`;
+                    }
+
+                    // Display assistant response
+                    chatBox.innerHTML += messageContent;
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                } else if (data.error) {
+                    chatBox.innerHTML += `<div class="message error-message">Error: ${data.error}</div>`;
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
+            })
+            .catch(error => {
+                chatBox.innerHTML += `<div class="message error-message">Error: Could not reach the server.</div>`;
+                console.error('Error:', error);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            });
+        }
+
+        // Event listener for Enter key
+        document.getElementById("user-input").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
